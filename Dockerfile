@@ -1,7 +1,7 @@
 FROM softwaremill/elasticmq
 
 COPY sqs-insight/ /opt/sqs-insight/
-COPY config_local.conf /opt/sqs-insight/config/
+COPY config_local.json /opt/sqs-insight/config/
 COPY elasticmq.conf /opt/
 
 USER root
@@ -14,7 +14,9 @@ RUN echo "deb [check-valid-until=no] http://archive.debian.org/debian jessie-bac
 RUN sed -i '/deb http:\/\/deb.debian.org\/debian jessie-updates main/d' /etc/apt/sources.list
 
 RUN apt-get -o Acquire::Check-Valid-Until=false update
-RUN apt-get -y install nodejs npm
+
+RUN curl -sL https://deb.nodesource.com/setup_10.x | bash -
+RUN apt-get -y install nodejs supervisor vim
 
 # RUN ln -s /usr/bin/nodejs /usr/bin/node
 
@@ -22,8 +24,11 @@ RUN apt-get -y install nodejs npm
 # RUN ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts;
 # RUN npm install finanzcheck/sqs-insight && npm start
 
-RUN cd /opt/sqs-insight/ && npm install && npm start &
+RUN cd /opt/sqs-insight/ && npm install
 
-USER daemon
+COPY ./worker.conf /etc/supervisor/conf.d/worker.conf
+
+ENTRYPOINT ["supervisord", "-c", "/etc/supervisor/supervisord.conf"]
+# USER daemon
 
 EXPOSE 9324 9325
